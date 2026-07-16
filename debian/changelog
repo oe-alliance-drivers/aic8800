@@ -1,3 +1,10 @@
+aic8800 (5.0+git20260123.5f7be68d-7) noble; urgency=medium
+
+  [ Jiali Chen ]
+  * fix: avoid usb reboot hang after suspend
+
+ -- "Radxa Computer Co., Ltd" <dev@radxa.com>  Thu, 16 Jul 2026 03:50:13 +0000
+
 aic8800 (5.0+git20260123.5f7be68d-6) noble; urgency=medium
 
   [ ZHANG Yuntian ]
