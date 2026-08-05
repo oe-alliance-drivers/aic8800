@@ -1,3 +1,10 @@
+aic8800 (5.0+git20260123.5f7be68d-8) noble; urgency=medium
+
+  [ lukaszsobala ]
+  * fix building on kernels 7.1 and 7.2
+
+ -- "Radxa Computer Co., Ltd" <dev@radxa.com>  Wed, 05 Aug 2026 09:30:21 +0000
+
 aic8800 (5.0+git20260123.5f7be68d-7) noble; urgency=medium
 
   [ Jiali Chen ]
