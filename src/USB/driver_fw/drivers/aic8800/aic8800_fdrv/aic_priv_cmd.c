@@ -11,6 +11,7 @@
  */
 
 #include <linux/netdevice.h>
+#include <linux/etherdevice.h>
 #include <linux/ctype.h>
 #include "rwnx_defs.h"
 #include "rwnx_msg_tx.h"
