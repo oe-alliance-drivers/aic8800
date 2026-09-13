@@ -9044,8 +9044,14 @@ if((g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8801) ||
         #endif
         0;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) || defined(CONFIG_WPA3_FOR_OLD_KERNEL)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
     wiphy->features |= NL80211_FEATURE_SAE;
+#elif defined(CONFIG_WPA3_FOR_OLD_KERNEL)
+    /* SAE needs the external auth API, which the running kernel may lack */
+    if (symbol_get(cfg80211_external_auth_request)) {
+        symbol_put(cfg80211_external_auth_request);
+        wiphy->features |= NL80211_FEATURE_SAE;
+    }
 #endif
 
     if (rwnx_mod_params.tdls)

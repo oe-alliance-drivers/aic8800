@@ -1283,6 +1283,27 @@ static inline int rwnx_rx_sm_disconnect_ind(struct rwnx_hw *rwnx_hw,
     return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 17, 0) && defined(CONFIG_WPA3_FOR_OLD_KERNEL)
+/* The external auth API comes from a cfg80211 backport the running kernel
+ * may lack, so it is looked up at runtime instead of linked against. */
+static int rwnx_external_auth_request(struct net_device *dev,
+                                      struct cfg80211_external_auth_params *params,
+                                      gfp_t gfp)
+{
+    typeof(&cfg80211_external_auth_request) fn;
+    int ret;
+
+    fn = symbol_get(cfg80211_external_auth_request);
+    if (!fn)
+        return -EOPNOTSUPP;
+    ret = fn(dev, params, gfp);
+    symbol_put(cfg80211_external_auth_request);
+    return ret;
+}
+#else
+#define rwnx_external_auth_request cfg80211_external_auth_request
+#endif
+
 static inline int rwnx_rx_sm_external_auth_required_ind(struct rwnx_hw *rwnx_hw,
                                                         struct rwnx_cmd *cmd,
                                                         struct ipc_e2a_msg *msg)
@@ -1320,7 +1341,7 @@ static inline int rwnx_rx_sm_external_auth_required_ind(struct rwnx_hw *rwnx_hw,
 
     if ((ind->vif_idx > NX_VIRT_DEV_MAX) || !rwnx_vif->up ||
         (RWNX_VIF_TYPE(rwnx_vif) != NL80211_IFTYPE_STATION) ||
-        (ret = cfg80211_external_auth_request(dev, &params, GFP_ATOMIC))) {
+        (ret = rwnx_external_auth_request(dev, &params, GFP_ATOMIC))) {
 		wiphy_err(rwnx_hw->wiphy, "Failed to start external auth on vif %d, rwnx_vif->up %d, iftype:%d, ret %d",
 				  ind->vif_idx, rwnx_vif->up, RWNX_VIF_TYPE(rwnx_vif), ret);
         rwnx_send_sm_external_auth_required_rsp(rwnx_hw, rwnx_vif,
