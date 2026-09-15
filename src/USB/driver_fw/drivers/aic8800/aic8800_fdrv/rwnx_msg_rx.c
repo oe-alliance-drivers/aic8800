@@ -1292,11 +1292,23 @@ static int rwnx_external_auth_request(struct net_device *dev,
 {
     typeof(&cfg80211_external_auth_request) fn;
     int ret;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
+    int retry_counter = 10;
+#endif
 
     fn = symbol_get(cfg80211_external_auth_request);
     if (!fn)
         return -EOPNOTSUPP;
     ret = fn(dev, params, gfp);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
+    /* The backport keeps the connection owner inside cfg80211 and refuses
+     * the request with -EINVAL until wpa_supplicant owns the connection. */
+    while (ret == -EINVAL && --retry_counter > 0) {
+        AICWFDBG(LOGINFO, "%s WARNING no connection owner yet, msleep 100ms.\r\n", __func__);
+        msleep(100);
+        ret = fn(dev, params, gfp);
+    }
+#endif
     symbol_put(cfg80211_external_auth_request);
     return ret;
 }
@@ -1315,8 +1327,10 @@ static inline int rwnx_rx_sm_external_auth_required_ind(struct rwnx_hw *rwnx_hw,
     struct net_device *dev = rwnx_vif->ndev;
     struct cfg80211_external_auth_params params;
 	int ret = 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
 	int retry_counter = 10;
+#endif
 
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
@@ -1329,6 +1343,7 @@ static inline int rwnx_rx_sm_external_auth_required_ind(struct rwnx_hw *rwnx_hw,
            min_t(size_t, ind->ssid.length, sizeof(params.ssid.ssid)));
     params.key_mgmt_suite = ind->akm;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 	while (wdev->conn_owner_nlportid == 0) {
 		AICWFDBG(LOGINFO, "%s WARNING conn_owner_nlportid = 0, msleep 100ms.\r\n", __func__);
 		msleep(100);
@@ -1338,6 +1353,7 @@ static inline int rwnx_rx_sm_external_auth_required_ind(struct rwnx_hw *rwnx_hw,
 		}
 	}
 	AICWFDBG(LOGINFO, "%s wdev->conn_owner_nlportid:%d \r\n", __func__, (int)wdev->conn_owner_nlportid);
+#endif
 
     if ((ind->vif_idx > NX_VIRT_DEV_MAX) || !rwnx_vif->up ||
         (RWNX_VIF_TYPE(rwnx_vif) != NL80211_IFTYPE_STATION) ||
